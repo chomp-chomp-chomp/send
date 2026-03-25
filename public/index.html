@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Sender – The Baking Experience</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      background: #f7f3ee;
+      color: #3d2e24;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #3d2e24;
+      color: #fdf6ef;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    header .badge {
+      font-size: 11px;
+      background: #e8956d;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── LEFT PANEL ── */
+    .panel {
+      background: #fffdf9;
+      border-right: 1px solid #e8ddd5;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-tabs {
+      display: flex;
+      border-bottom: 1px solid #e8ddd5;
+      background: #fdf6ef;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .panel-tab {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      background: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: #a08878;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .panel-tab.active {
+      color: #3d2e24;
+      border-bottom-color: #e8956d;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 20px;
+      flex: 1;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    /* ── FORM ── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #a08878;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="url"],
+    textarea,
+    select {
+      border: 1px solid #e0d5cc;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #3d2e24;
+      background: #fff;
+      width: 100%;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #e8956d;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #c4a898;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #f0e8de;
+      margin-top: 4px;
+    }
+
+    /* Paragraphs list */
+    .paragraphs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .paragraph-item {
+      position: relative;
+    }
+
+    .paragraph-item textarea {
+      padding-right: 36px;
+    }
+
+    .btn-remove-para {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: none;
+      border: none;
+      color: #c4a898;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      padding: 0 4px;
+    }
+
+    .btn-remove-para:hover { color: #e8956d; }
+
+    .btn-add-para {
+      align-self: flex-start;
+      background: none;
+      border: 1px dashed #c4a898;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: #a08878;
+      cursor: pointer;
+    }
+
+    .btn-add-para:hover { border-color: #e8956d; color: #e8956d; }
+
+    /* ── RECIPIENTS TAB ── */
+    .recipients-area {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .recipient-count {
+      font-size: 12px;
+      color: #a08878;
+    }
+
+    .recipient-count strong {
+      color: #3d2e24;
+    }
+
+    .upload-zone {
+      border: 1px dashed #c4a898;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: #a08878;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .upload-zone:hover { border-color: #e8956d; color: #e8956d; }
+
+    .upload-zone input { display: none; }
+
+    .recipient-list {
+      font-size: 12px;
+      background: #fdf6ef;
+      border: 1px solid #f0e8de;
+      border-radius: 6px;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      line-height: 1.8;
+    }
+
+    .recipient-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f0e8de;
+      border-radius: 4px;
+      padding: 1px 6px;
+      margin: 2px;
+      font-family: monospace;
+    }
+
+    .recipient-tag button {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      color: #a08878;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .recipient-tag button:hover { color: #e8956d; }
+
+    /* ── SEND SECTION ── */
+    .send-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      border-top: 1px solid #f0e8de;
+      background: #fdf6ef;
+    }
+
+    .apikey-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .apikey-row input {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-primary {
+      background: #e8956d;
+      color: white;
+    }
+
+    .btn-primary:hover { background: #d97d55; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #f0e8de;
+      color: #3d2e24;
+    }
+
+    .btn-secondary:hover { background: #e8ddd5; }
+
+    .status-msg {
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .status-msg.success { background: #d4edda; color: #155724; display: block; }
+    .status-msg.error { background: #f8d7da; color: #721c24; display: block; }
+    .status-msg.info { background: #d1ecf1; color: #0c5460; display: block; }
+
+    /* ── HISTORY TAB ── */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .history-item {
+      background: #fdf6ef;
+      border: 1px solid #f0e8de;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .history-item .hi-subject {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .history-item .hi-meta {
+      font-size: 12px;
+      color: #a08878;
+    }
+
+    .history-item .hi-errors {
+      font-size: 12px;
+      color: #721c24;
+      margin-top: 4px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #c4a898;
+      font-size: 13px;
+      padding: 32px 0;
+    }
+
+    /* ── RIGHT PANEL: PREVIEW ── */
+    .preview-panel {
+      background: #f7f3ee;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .preview-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #fdf6ef;
+      border-bottom: 1px solid #e8ddd5;
+    }
+
+    .preview-toolbar span {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #a08878;
+    }
+
+    .preview-frame-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 24px;
+    }
+
+    #preview-frame {
+      width: 100%;
+      height: 100%;
+      min-height: 600px;
+      border: none;
+      border-radius: 8px;
+      background: white;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d5c9bf; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Email Sender</h1>
+  <span class="badge">Resend</span>
+</header>
+
+<div class="app">
+  <!-- LEFT PANEL -->
+  <div class="panel">
+    <div class="panel-tabs">
+      <button class="panel-tab active" data-tab="compose">Compose</button>
+      <button class="panel-tab" data-tab="recipients">Recipients</button>
+      <button class="panel-tab" data-tab="history">History</button>
+    </div>
+
+    <!-- COMPOSE TAB -->
+    <div class="tab-content active" id="tab-compose">
+      <div class="section-label">Email Details</div>
+
+      <div class="field">
+        <label>Subject Line</label>
+        <input type="text" id="f-subject" placeholder="e.g. Join us: The Baking Experience">
+      </div>
+
+      <div class="field">
+        <label>From Address</label>
+        <input type="email" id="f-from" placeholder="you@yourdomain.com">
+      </div>
+
+      <div class="section-label">Event Info</div>
+
+      <div class="field">
+        <label>Title (main heading)</label>
+        <input type="text" id="f-title" placeholder="Stories &amp; Recipes">
+      </div>
+
+      <div class="field">
+        <label>Subtitle / Eyebrow</label>
+        <input type="text" id="f-subtitle" placeholder="Inaugural Meeting">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="text" id="f-date" placeholder="Tuesday, April 7, 2026">
+        </div>
+        <div class="field">
+          <label>Time</label>
+          <input type="text" id="f-time" placeholder="1:00–2:00 pm EDT">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Location (separate parts with |)</label>
+        <input type="text" id="f-location" placeholder="New York Office | Room 39-308">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>RSVP Link</label>
+          <input type="url" id="f-rsvp-link" placeholder="https://...">
+        </div>
+        <div class="field">
+          <label>RSVP Button Text</label>
+          <input type="text" id="f-rsvp-text" placeholder="Count me in →">
+        </div>
+      </div>
+
+      <div class="section-label">Body Paragraphs</div>
+
+      <div class="paragraphs-list" id="paragraphs-list">
+        <!-- dynamically populated -->
+      </div>
+
+      <button class="btn-add-para" id="btn-add-para">+ Add paragraph</button>
+
+      <div class="section-label">Contact</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Contact Name</label>
+          <input type="text" id="f-contact-name" placeholder="Don Boman">
+        </div>
+        <div class="field">
+          <label>Contact Email</label>
+          <input type="email" id="f-contact-email" placeholder="contact@example.com">
+        </div>
+      </div>
+    </div>
+
+    <!-- RECIPIENTS TAB -->
+    <div class="tab-content" id="tab-recipients">
+      <div class="section-label">Recipient List</div>
+      <div class="recipient-count">
+        <strong id="recipient-count-num">0</strong> recipients
+      </div>
+
+      <div class="field">
+        <label>Paste addresses (one per line, or comma-separated)</label>
+        <textarea id="paste-recipients" placeholder="alice@example.com&#10;bob@example.com" rows="5"></textarea>
+        <button class="btn btn-secondary" style="align-self:flex-start;margin-top:4px;font-size:13px;padding:7px 14px;" id="btn-add-pasted">Add addresses</button>
+      </div>
+
+      <label class="upload-zone" for="csv-upload">
+        <input type="file" id="csv-upload" accept=".csv,.txt">
+        📎 Upload CSV or TXT file — emails will be extracted automatically
+      </label>
+
+      <div id="recipient-tags" class="recipient-list" style="display:none;"></div>
+
+      <button class="btn btn-secondary" style="align-self:flex-start;font-size:12px;padding:6px 12px;" id="btn-clear-recipients">Clear all</button>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="tab-content" id="tab-history">
+      <div class="section-label">Sent History</div>
+      <div class="history-list" id="history-list">
+        <div class="empty-state">No emails sent yet.</div>
+      </div>
+    </div>
+
+    <!-- SEND SECTION (persistent) -->
+    <div class="send-section">
+      <div class="apikey-row">
+        <input type="password" id="api-key" placeholder="Resend API key (re_…)">
+      </div>
+      <div id="status-msg" class="status-msg"></div>
+      <button class="btn btn-primary" id="btn-send">
+        Send to <span id="send-count">0</span> recipient(s)
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: PREVIEW -->
+  <div class="preview-panel">
+    <div class="preview-toolbar">
+      <span>Live Preview</span>
+    </div>
+    <div class="preview-frame-wrap">
+      <iframe id="preview-frame" sandbox="allow-same-origin"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let recipients = [];
+let previewDebounce = null;
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.panel-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'history') loadHistory();
+  });
+});
+
+// ─── DEFAULT CONTENT ──────────────────────────────────────────────────────────
+const defaults = {
+  subject: 'Join Us: The Baking Experience – Stories & Recipes',
+  from: '',
+  title: 'Stories & Recipes',
+  subtitle: 'Inaugural Meeting',
+  date: 'Tuesday, April 7, 2026',
+  time: '1:00–2:00 pm EDT',
+  location: 'New York Office | Room 39-308',
+  rsvpLink: 'https://ks.ad.skadden.net/cfapplications/EventCenters/SkaddenExperience/register/?theItemsID=70272',
+  rsvpText: 'Count me in →',
+  contactName: 'Don Boman',
+  contactEmail: 'don.boman@skadden.com',
+  paragraphs: [
+    'Think about what baking means to you: maybe it\'s a recipe passed down in your family that carries the flavors of a particular culture or place; maybe it\'s a memory of someone who baked for you when you were growing up; maybe it\'s something you\'ve started making as an adult that has become a ritual or an act of connection.',
+    'It could be tied to a holiday tradition, a specific ingredient, a technique your grandmother swore by, or even a total disaster that somehow became a favorite story.',
+    'Come ready to share — and if you have a recipe that holds a special place, bring that too. There\'s no wrong answer, no competition; just the stories behind the food.',
+    'Open to all employees. Cookies will be provided.',
+  ],
+};
+
+function populateDefaults() {
+  document.getElementById('f-subject').value = defaults.subject;
+  document.getElementById('f-title').value = defaults.title;
+  document.getElementById('f-subtitle').value = defaults.subtitle;
+  document.getElementById('f-date').value = defaults.date;
+  document.getElementById('f-time').value = defaults.time;
+  document.getElementById('f-location').value = defaults.location;
+  document.getElementById('f-rsvp-link').value = defaults.rsvpLink;
+  document.getElementById('f-rsvp-text').value = defaults.rsvpText;
+  document.getElementById('f-contact-name').value = defaults.contactName;
+  document.getElementById('f-contact-email').value = defaults.contactEmail;
+  defaults.paragraphs.forEach(addParagraph);
+}
+
+// ─── PARAGRAPHS ──────────────────────────────────────────────────────────────
+function addParagraph(text = '') {
+  const list = document.getElementById('paragraphs-list');
+  const item = document.createElement('div');
+  item.className = 'paragraph-item field';
+  item.innerHTML = `
+    <textarea rows="4" placeholder="Paragraph text…">${text}</textarea>
+    <button class="btn-remove-para" title="Remove">×</button>
+  `;
+  item.querySelector('.btn-remove-para').addEventListener('click', () => {
+    item.remove();
+    schedulePreview();
+  });
+  item.querySelector('textarea').addEventListener('input', schedulePreview);
+  list.appendChild(item);
+}
+
+document.getElementById('btn-add-para').addEventListener('click', () => {
+  addParagraph();
+});
+
+// ─── FORM DATA ───────────────────────────────────────────────────────────────
+function getEmailData() {
+  const paras = Array.from(document.querySelectorAll('#paragraphs-list textarea'))
+    .map(t => t.value);
+  return {
+    subject: document.getElementById('f-subject').value,
+    fromAddress: document.getElementById('f-from').value,
+    title: document.getElementById('f-title').value,
+    subtitle: document.getElementById('f-subtitle').value,
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    location: document.getElementById('f-location').value,
+    rsvpLink: document.getElementById('f-rsvp-link').value,
+    rsvpText: document.getElementById('f-rsvp-text').value,
+    contactName: document.getElementById('f-contact-name').value,
+    contactEmail: document.getElementById('f-contact-email').value,
+    bodyParagraphs: paras,
+  };
+}
+
+// ─── LIVE PREVIEW ────────────────────────────────────────────────────────────
+function schedulePreview() {
+  clearTimeout(previewDebounce);
+  previewDebounce = setTimeout(updatePreview, 300);
+}
+
+async function updatePreview() {
+  const data = getEmailData();
+  try {
+    const res = await fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const html = await res.text();
+    const frame = document.getElementById('preview-frame');
+    frame.srcdoc = html;
+  } catch (e) {
+    console.error('Preview failed', e);
+  }
+}
+
+// Wire all form inputs to live preview
+document.querySelectorAll('#tab-compose input, #tab-compose textarea').forEach(el => {
+  el.addEventListener('input', schedulePreview);
+});
+
+// ─── RECIPIENTS ──────────────────────────────────────────────────────────────
+function renderRecipients() {
+  const el = document.getElementById('recipient-tags');
+  const count = document.getElementById('recipient-count-num');
+  const sendCount = document.getElementById('send-count');
+
+  count.textContent = recipients.length;
+  sendCount.textContent = recipients.length;
+
+  if (recipients.length === 0) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+
+  el.style.display = 'block';
+  el.innerHTML = recipients.map((email, i) => `
+    <span class="recipient-tag">
+      ${email}
+      <button onclick="removeRecipient(${i})" title="Remove">×</button>
+    </span>
+  `).join('');
+}
+
+window.removeRecipient = function(i) {
+  recipients.splice(i, 1);
+  renderRecipients();
+};
+
+function addEmailsToList(emails) {
+  const before = recipients.length;
+  emails.forEach(e => {
+    const clean = e.trim().toLowerCase();
+    if (clean && !recipients.includes(clean)) recipients.push(clean);
+  });
+  renderRecipients();
+  return recipients.length - before;
+}
+
+document.getElementById('btn-add-pasted').addEventListener('click', () => {
+  const val = document.getElementById('paste-recipients').value;
+  const emails = val.split(/[\n,;]+/).map(e => e.trim()).filter(e => e.includes('@'));
+  const added = addEmailsToList(emails);
+  document.getElementById('paste-recipients').value = '';
+  showStatus(`Added ${added} address(es).`, 'info');
+});
+
+document.getElementById('btn-clear-recipients').addEventListener('click', () => {
+  recipients = [];
+  renderRecipients();
+});
+
+// CSV upload
+document.getElementById('csv-upload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('csv', file);
+  try {
+    const res = await fetch('/api/parse-csv', { method: 'POST', body: formData });
+    const data = await res.json();
+    const added = addEmailsToList(data.emails || []);
+    showStatus(`Extracted ${added} address(es) from ${file.name}.`, 'info');
+  } catch (err) {
+    showStatus('Failed to parse file: ' + err.message, 'error');
+  }
+  e.target.value = '';
+});
+
+// ─── SEND ────────────────────────────────────────────────────────────────────
+document.getElementById('btn-send').addEventListener('click', async () => {
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) return showStatus('Enter your Resend API key.', 'error');
+  if (recipients.length === 0) return showStatus('Add at least one recipient.', 'error');
+
+  const btn = document.getElementById('btn-send');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  clearStatus();
+
+  try {
+    const res = await fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        emailData: getEmailData(),
+        recipients,
+        apiKey,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showStatus(data.error || 'Send failed.', 'error');
+    } else {
+      let msg = `Sent to ${data.sent} of ${data.total} recipients.`;
+      if (data.errors && data.errors.length > 0) {
+        msg += ` ${data.errors.length} failed.`;
+      }
+      showStatus(msg, data.errors.length > 0 ? 'info' : 'success');
+    }
+  } catch (err) {
+    showStatus('Request failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `Send to <span id="send-count">${recipients.length}</span> recipient(s)`;
+  }
+});
+
+// ─── STATUS ──────────────────────────────────────────────────────────────────
+function showStatus(msg, type) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg ' + type;
+}
+
+function clearStatus() {
+  const el = document.getElementById('status-msg');
+  el.className = 'status-msg';
+  el.textContent = '';
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const res = await fetch('/api/history');
+    const history = await res.json();
+    const list = document.getElementById('history-list');
+    if (history.length === 0) {
+      list.innerHTML = '<div class="empty-state">No emails sent yet.</div>';
+      return;
+    }
+    list.innerHTML = history.map(item => {
+      const date = new Date(item.sentAt).toLocaleString();
+      const errHtml = item.errors && item.errors.length
+        ? `<div class="hi-errors">⚠ ${item.errors.length} failed: ${item.errors.map(e => e.to).join(', ')}</div>`
+        : '';
+      return `
+        <div class="history-item">
+          <div class="hi-subject">${escHtml(item.subject)}</div>
+          <div class="hi-meta">${date} &nbsp;·&nbsp; ${item.recipientCount} sent</div>
+          ${errHtml}
+        </div>`;
+    }).join('');
+  } catch (e) {
+    console.error('Failed to load history', e);
+  }
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+populateDefaults();
+updatePreview();
+</script>
+</body>
+</html>
