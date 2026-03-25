@@ -254,9 +254,19 @@
         <label>Subject Line</label>
         <input type="text" id="f-subject" placeholder="e.g. Join us: The Baking Experience">
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label>From Name</label>
+          <input type="text" id="f-from-name" placeholder="The Baking Experience">
+        </div>
+        <div class="field">
+          <label>From Address</label>
+          <input type="email" id="f-from" placeholder="you@yourdomain.com">
+        </div>
+      </div>
       <div class="field">
-        <label>From Address</label>
-        <input type="email" id="f-from" placeholder="you@yourdomain.com">
+        <label>Reply-To <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+        <input type="email" id="f-reply-to" placeholder="replies@yourdomain.com">
       </div>
 
       <div class="section-label">Event Info</div>
@@ -381,6 +391,10 @@
     <!-- SEND (persistent) -->
     <div class="send-section">
       <input type="password" id="api-key" placeholder="Resend API key  (re_…)">
+      <div style="display:flex;gap:8px;">
+        <input type="email" id="test-email" placeholder="Test address" style="flex:1;">
+        <button class="btn btn-secondary btn-sm" id="btn-send-test">Send test</button>
+      </div>
       <div id="status-msg" class="status-msg"></div>
       <button class="btn btn-primary" id="btn-send">
         Send to <span id="send-count">0</span> recipient(s)
@@ -455,7 +469,9 @@ document.getElementById('btn-add-para').addEventListener('click', () => { addPar
 function getEmailData() {
   return {
     subject: document.getElementById('f-subject').value,
+    fromName: document.getElementById('f-from-name').value,
     fromAddress: document.getElementById('f-from').value,
+    replyTo: document.getElementById('f-reply-to').value,
     title: document.getElementById('f-title').value,
     subtitle: document.getElementById('f-subtitle').value,
     date: document.getElementById('f-date').value,
@@ -698,6 +714,40 @@ document.getElementById('btn-send').addEventListener('click', async () => {
   } finally {
     btn.disabled = false;
     btn.innerHTML = `Send to <span id="send-count">${recipients.length}</span> recipient(s)`;
+  }
+});
+
+// ─── TEST SEND ────────────────────────────────────────────────────────────────
+document.getElementById('btn-send-test').addEventListener('click', async () => {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const testEmail = document.getElementById('test-email').value.trim();
+  if (!apiKey) return showStatus('Enter your Resend API key.', 'error');
+  if (!testEmail) return showStatus('Enter a test email address.', 'error');
+
+  const btn = document.getElementById('btn-send-test');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  clearStatus();
+
+  try {
+    const res = await fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ templateId: currentTemplateId, emailData: getEmailData(), recipients: [testEmail], apiKey }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showStatus(data.error || 'Test send failed.', 'error');
+    } else if (data.errors?.length) {
+      showStatus('Test failed: ' + data.errors[0].error, 'error');
+    } else {
+      showStatus('Test sent to ' + testEmail + '.', 'success');
+    }
+  } catch (err) {
+    showStatus('Request failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send test';
   }
 });
 
