@@ -122,7 +122,7 @@ const DEFAULT_TEMPLATE = {
 <style>
   body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
   table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-  body { margin: 0; padding: 0; background-color: #f7f3ee; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  body { margin: 0; padding: 0; background-color: #f7f3ee; font-family: Calibri, 'Helvetica Neue', Helvetica, Arial, sans-serif; }
   @media only screen and (max-width: 600px) {
     .email-container { width: 100% !important; }
     .outer-td { padding: 16px 8px !important; }
@@ -142,20 +142,20 @@ const DEFAULT_TEMPLATE = {
         <tr>
           <td class="header-pad" align="center" style="background-color:#fffdf9;padding:28px 40px 32px;border-bottom:1px solid #f0e8de;">
             <img src="https://ik.imagekit.io/chompchomp/Baking%20Experience%20logo" alt="The Baking Experience" width="480" style="display:block;margin:0 auto 8px;width:480px;max-width:100%;height:auto;">
-            <p style="margin:0 0 14px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:400;color:#a08878;letter-spacing:0.06em;">{{subtitle}}</p>
-            <h1 class="main-title" style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:40px;font-weight:normal;color:#3d2e24;line-height:1.15;letter-spacing:-0.01em;">{{title}}</h1>
+            <p style="margin:0 0 14px;font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:400;color:#a08878;letter-spacing:0.06em;">{{subtitle}}</p>
+            <h1 class="main-title" style="margin:0 0 16px;font-family:Cambria,Georgia,'Times New Roman',serif;font-size:40px;font-weight:normal;color:#3d2e24;line-height:1.15;letter-spacing:-0.01em;">{{title}}</h1>
           </td>
         </tr>
         <!-- EVENT DETAILS -->
         <tr>
           <td align="center" style="padding:28px 40px 20px;background-color:#fffdf9;">
-            <p style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;color:#4a3a30;line-height:1.9;">{{date}} &nbsp;&bull;&nbsp; {{time}}<br>{{location}}</p>
+            <p style="margin:0;font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;color:#4a3a30;line-height:1.9;">{{date}} &nbsp;&bull;&nbsp; {{time}}<br>{{location}}</p>
           </td>
         </tr>
         <!-- RSVP LINK -->
         <tr>
           <td align="center" style="padding:8px 40px 32px;background-color:#fffdf9;">
-            <a href="{{rsvpLink}}" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:#e8956d;text-decoration:none;letter-spacing:0.04em;">{{rsvpText}}</a>
+            <a href="{{rsvpLink}}" style="font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:#e8956d;text-decoration:none;letter-spacing:0.04em;">{{rsvpText}}</a>
           </td>
         </tr>
         <!-- DIVIDER -->
@@ -168,7 +168,7 @@ const DEFAULT_TEMPLATE = {
         </tr>
         <!-- BODY COPY -->
         <tr>
-          <td class="body-pad" style="padding:32px 44px 24px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a3a30;">
+          <td class="body-pad" style="padding:32px 44px 24px;font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a3a30;">
             {{bodyParagraphs}}
             <p style="margin:0;font-size:13px;color:#a08878;">Questions? Reach out to <a href="mailto:{{contactEmail}}" style="color:#e8956d;text-decoration:none;font-weight:600;">{{contactName}}</a>.</p>
           </td>
@@ -176,8 +176,8 @@ const DEFAULT_TEMPLATE = {
         <!-- FOOTER -->
         <tr>
           <td class="footer-pad" align="center" style="padding:20px 40px 28px;background-color:#fdf6ef;border-top:1px solid #f0e8de;">
-            <p style="margin:0 0 4px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;color:#c4a898;letter-spacing:0.08em;">Stories &bull; Recipes &bull; Culture &bull; Tradition</p>
-            <p style="margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#c4a898;">The Baking Experience, a Skadden Experience Employee Group</p>
+            <p style="margin:0 0 4px;font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;color:#c4a898;letter-spacing:0.08em;">Stories &bull; Recipes &bull; Culture &bull; Tradition</p>
+            <p style="margin:0 0 16px;font-family:Cambria,Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#c4a898;">The Baking Experience, a Skadden Experience Employee Group</p>
             <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
               <tr>
                 <td style="padding:0 12px 0 0;">
