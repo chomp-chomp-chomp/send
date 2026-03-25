@@ -10,11 +10,12 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const HISTORY_FILE = path.join(__dirname, 'data', 'history.json');
+// On Fly.io, persistent volume is mounted at /data
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
 
 function ensureDataDir() {
-  const dir = path.join(__dirname, 'data');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, '[]');
 }
 
