@@ -277,18 +277,19 @@ app.post('/api/send', async (req, res) => {
   const resend = new Resend(apiKey);
   const html = renderTemplate(t.html, emailData || {});
   const subject = (emailData && (emailData.subject || emailData.title)) || '(no subject)';
+  const fromAddress = (emailData && emailData.fromAddress) || 'onboarding@resend.dev';
+  const fromName = emailData && emailData.fromName;
+  const from = fromName ? `${fromName} <${fromAddress}>` : fromAddress;
+  const replyTo = emailData && emailData.replyTo;
 
   const errors = [];
   const sent = [];
 
   for (const to of recipients) {
     try {
-      const result = await resend.emails.send({
-        from: (emailData && emailData.fromAddress) || 'onboarding@resend.dev',
-        to,
-        subject,
-        html,
-      });
+      const msg = { from, to, subject, html };
+      if (replyTo) msg.reply_to = replyTo;
+      const result = await resend.emails.send(msg);
       if (result.error) {
         errors.push({ to, error: result.error.message });
       } else {

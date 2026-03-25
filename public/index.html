@@ -254,9 +254,19 @@
         <label>Subject Line</label>
         <input type="text" id="f-subject" placeholder="e.g. Join us: The Baking Experience">
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label>From Name</label>
+          <input type="text" id="f-from-name" placeholder="The Baking Experience">
+        </div>
+        <div class="field">
+          <label>From Address</label>
+          <input type="email" id="f-from" placeholder="you@yourdomain.com">
+        </div>
+      </div>
       <div class="field">
-        <label>From Address</label>
-        <input type="email" id="f-from" placeholder="you@yourdomain.com">
+        <label>Reply-To <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+        <input type="email" id="f-reply-to" placeholder="replies@yourdomain.com">
       </div>
 
       <div class="section-label">Event Info</div>
@@ -459,7 +469,9 @@ document.getElementById('btn-add-para').addEventListener('click', () => { addPar
 function getEmailData() {
   return {
     subject: document.getElementById('f-subject').value,
+    fromName: document.getElementById('f-from-name').value,
     fromAddress: document.getElementById('f-from').value,
+    replyTo: document.getElementById('f-reply-to').value,
     title: document.getElementById('f-title').value,
     subtitle: document.getElementById('f-subtitle').value,
     date: document.getElementById('f-date').value,
