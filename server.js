@@ -8,6 +8,9 @@ const { randomUUID } = require('crypto');
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// ─── HEALTH CHECK (unauthenticated) ───────────────────────────────────────────
+app.get('/health', (req, res) => res.send('ok'));
+
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 const AUTH_USER = process.env.AUTH_USER;
 const AUTH_PASS = process.env.AUTH_PASS;
