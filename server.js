@@ -7,6 +7,26 @@ const multer = require('multer');
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Basic Auth
+const AUTH_USER = process.env.AUTH_USER;
+const AUTH_PASS = process.env.AUTH_PASS;
+
+if (AUTH_USER && AUTH_PASS) {
+  app.use((req, res, next) => {
+    const header = req.headers['authorization'];
+    if (!header || !header.startsWith('Basic ')) {
+      res.set('WWW-Authenticate', 'Basic realm="Email Sender"');
+      return res.status(401).send('Authentication required.');
+    }
+    const [user, pass] = Buffer.from(header.slice(6), 'base64').toString().split(':');
+    if (user !== AUTH_USER || pass !== AUTH_PASS) {
+      res.set('WWW-Authenticate', 'Basic realm="Email Sender"');
+      return res.status(401).send('Invalid credentials.');
+    }
+    next();
+  });
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
