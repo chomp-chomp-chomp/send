@@ -381,6 +381,10 @@
     <!-- SEND (persistent) -->
     <div class="send-section">
       <input type="password" id="api-key" placeholder="Resend API key  (re_…)">
+      <div style="display:flex;gap:8px;">
+        <input type="email" id="test-email" placeholder="Test address" style="flex:1;">
+        <button class="btn btn-secondary btn-sm" id="btn-send-test">Send test</button>
+      </div>
       <div id="status-msg" class="status-msg"></div>
       <button class="btn btn-primary" id="btn-send">
         Send to <span id="send-count">0</span> recipient(s)
@@ -698,6 +702,40 @@ document.getElementById('btn-send').addEventListener('click', async () => {
   } finally {
     btn.disabled = false;
     btn.innerHTML = `Send to <span id="send-count">${recipients.length}</span> recipient(s)`;
+  }
+});
+
+// ─── TEST SEND ────────────────────────────────────────────────────────────────
+document.getElementById('btn-send-test').addEventListener('click', async () => {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const testEmail = document.getElementById('test-email').value.trim();
+  if (!apiKey) return showStatus('Enter your Resend API key.', 'error');
+  if (!testEmail) return showStatus('Enter a test email address.', 'error');
+
+  const btn = document.getElementById('btn-send-test');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  clearStatus();
+
+  try {
+    const res = await fetch('/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ templateId: currentTemplateId, emailData: getEmailData(), recipients: [testEmail], apiKey }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showStatus(data.error || 'Test send failed.', 'error');
+    } else if (data.errors?.length) {
+      showStatus('Test failed: ' + data.errors[0].error, 'error');
+    } else {
+      showStatus('Test sent to ' + testEmail + '.', 'success');
+    }
+  } catch (err) {
+    showStatus('Request failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send test';
   }
 });
 
