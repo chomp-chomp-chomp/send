@@ -1,4 +1,4 @@
-app = "baking-experience-send"
+app = "chomp-chomp-send"
 primary_region = "ewr"  # Newark — change to your preferred region
 
 [build]
