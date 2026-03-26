@@ -406,6 +406,7 @@
   <div class="preview-panel">
     <div class="preview-toolbar">
       <span>Live Preview</span>
+      <button class="btn btn-secondary btn-sm" id="btn-download-html">Download HTML</button>
     </div>
     <div class="preview-frame-wrap">
       <iframe id="preview-frame" sandbox="allow-same-origin"></iframe>
@@ -779,6 +780,26 @@ async function loadHistory() {
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// ─── DOWNLOAD HTML ────────────────────────────────────────────────────────────
+document.getElementById('btn-download-html').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ templateId: currentTemplateId, emailData: getEmailData() }),
+    });
+    const html = await res.text();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const subject = document.getElementById('f-subject').value.trim() || 'email';
+    a.href = url;
+    a.download = subject.replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '-') + '.html';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { showStatus('Download failed: ' + e.message, 'error'); }
+});
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 populateDefaults();
