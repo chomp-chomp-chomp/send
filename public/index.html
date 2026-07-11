@@ -254,6 +254,7 @@
       <button class="panel-tab active" data-tab="compose">Compose</button>
       <button class="panel-tab" data-tab="recipients">Recipients</button>
       <button class="panel-tab" data-tab="templates">Templates</button>
+      <button class="panel-tab" data-tab="drafts">Drafts</button>
       <button class="panel-tab" data-tab="history">History</button>
     </div>
 
@@ -406,6 +407,14 @@
       </div>
     </div>
 
+    <!-- DRAFTS -->
+    <div class="tab-content" id="tab-drafts">
+      <div class="section-label">Saved Drafts</div>
+      <div id="draft-list" style="display:flex;flex-direction:column;gap:8px;">
+        <div class="empty-state">No saved drafts.</div>
+      </div>
+    </div>
+
     <!-- HISTORY -->
     <div class="tab-content" id="tab-history">
       <div class="section-label">Sent History</div>
@@ -422,9 +431,12 @@
         <button class="btn btn-secondary btn-sm" id="btn-send-test">Send test</button>
       </div>
       <div id="status-msg" class="status-msg"></div>
-      <button class="btn btn-primary" id="btn-send">
-        Send to <span id="send-count">0</span> recipient(s)
-      </button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" style="flex:1;" id="btn-save-draft">Save draft</button>
+        <button class="btn btn-primary" style="flex:2;" id="btn-send">
+          Send to <span id="send-count">0</span> recipient(s)
+        </button>
+      </div>
     </div>
   </div>
 
@@ -446,6 +458,8 @@ let recipients = [];
 let templates = [];
 let currentTemplateId = null;
 let previewTimer = null;
+let drafts = [];
+let currentDraftId = null;
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.panel-tab').forEach(tab => {
@@ -455,6 +469,7 @@ document.querySelectorAll('.panel-tab').forEach(tab => {
     tab.classList.add('active');
     document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
     if (tab.dataset.tab === 'history') loadHistory();
+    if (tab.dataset.tab === 'drafts') loadDrafts();
   });
 });
 
@@ -583,6 +598,28 @@ function getEmailData() {
     bodyParagraphs: Array.from(document.querySelectorAll('#paragraphs-list textarea')).map(t => t.value),
     events,
   };
+}
+
+function setEmailData(data) {
+  document.getElementById('f-subject').value = data.subject || '';
+  document.getElementById('f-from-name').value = data.fromName || '';
+  document.getElementById('f-from').value = data.fromAddress || '';
+  document.getElementById('f-reply-to').value = data.replyTo || '';
+  document.getElementById('f-title').value = data.title || '';
+  document.getElementById('f-subtitle').value = data.subtitle || '';
+  document.getElementById('f-date').value = data.date || '';
+  document.getElementById('f-time').value = data.time || '';
+  document.getElementById('f-location').value = data.location || '';
+  document.getElementById('f-rsvp-link').value = data.rsvpLink || '';
+  document.getElementById('f-rsvp-text').value = data.rsvpText || '';
+  document.getElementById('f-contact-name').value = data.contactName || '';
+  document.getElementById('f-contact-email').value = data.contactEmail || '';
+
+  document.getElementById('paragraphs-list').innerHTML = '';
+  (data.bodyParagraphs || []).forEach(addParagraph);
+
+  document.getElementById('events-list').innerHTML = '';
+  (data.events || []).forEach(addEvent);
 }
 
 // Wire compose inputs to live preview
@@ -754,6 +791,97 @@ document.getElementById('btn-save-template').addEventListener('click', async () 
     await loadTemplates();
     schedulePreview();
   } catch (e) { alert('Failed to save template.'); }
+});
+
+// ─── DRAFTS ───────────────────────────────────────────────────────────────────
+async function loadDrafts() {
+  try {
+    const res = await fetch('/api/drafts');
+    drafts = await res.json();
+    renderDraftList();
+  } catch (e) { console.error('Failed to load drafts', e); }
+}
+
+function renderDraftList() {
+  const list = document.getElementById('draft-list');
+  if (!drafts.length) {
+    list.innerHTML = '<div class="empty-state">No saved drafts.</div>';
+    return;
+  }
+  list.innerHTML = drafts.map(d => `
+    <div class="template-item ${d.id === currentDraftId ? 'active' : ''}">
+      <span class="ti-name">${escHtml(d.name)}<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:#a08878;font-size:11px;">${new Date(d.savedAt).toLocaleString()} &middot; ${(d.recipients || []).length} recipient(s)</span></span>
+      ${d.id === currentDraftId ? '<span class="ti-active-badge">Loaded</span>' : ''}
+      <div class="ti-actions">
+        <button class="btn-icon" onclick="loadDraft('${d.id}')">Load</button>
+        <button class="btn-icon danger" onclick="deleteDraft('${d.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+window.loadDraft = async function(id) {
+  try {
+    const res = await fetch(`/api/drafts/${id}`);
+    if (!res.ok) { alert('Failed to load draft.'); return; }
+    const d = await res.json();
+    currentDraftId = d.id;
+    if (d.templateId && templates.some(t => t.id === d.templateId)) {
+      currentTemplateId = d.templateId;
+      document.getElementById('template-select').value = d.templateId;
+    }
+    setEmailData(d.emailData || {});
+    recipients = Array.isArray(d.recipients) ? [...d.recipients] : [];
+    renderRecipients();
+    renderTemplateList();
+    renderDraftList();
+    document.querySelector('.panel-tab[data-tab="compose"]').click();
+    schedulePreview();
+    showStatus(`Loaded draft "${d.name}".`, 'info');
+  } catch (e) { alert('Failed to load draft.'); }
+};
+
+window.deleteDraft = async function(id) {
+  const d = drafts.find(d => d.id === id);
+  if (!confirm(`Delete draft "${d ? d.name : 'this draft'}"?`)) return;
+  try {
+    const res = await fetch(`/api/drafts/${id}`, { method: 'DELETE' });
+    if (!res.ok) { const data = await res.json(); alert(data.error); return; }
+    if (currentDraftId === id) currentDraftId = null;
+    await loadDrafts();
+  } catch (e) { alert('Failed to delete draft.'); }
+};
+
+document.getElementById('btn-save-draft').addEventListener('click', async () => {
+  const existing = drafts.find(d => d.id === currentDraftId);
+  const defaultName = existing ? existing.name : (document.getElementById('f-subject').value.trim() || 'Untitled draft');
+  const name = prompt('Draft name:', defaultName);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+
+  const payload = { name: trimmed, templateId: currentTemplateId, emailData: getEmailData(), recipients };
+
+  try {
+    let res;
+    if (existing) {
+      res = await fetch(`/api/drafts/${existing.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      res = await fetch('/api/drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
+    const d = await res.json();
+    if (!res.ok) { showStatus(d.error || 'Failed to save draft.', 'error'); return; }
+    currentDraftId = d.id;
+    await loadDrafts();
+    showStatus(`Draft "${d.name}" saved.`, 'success');
+  } catch (e) { showStatus('Failed to save draft: ' + e.message, 'error'); }
 });
 
 // ─── RECIPIENTS ───────────────────────────────────────────────────────────────
