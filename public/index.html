@@ -242,6 +242,9 @@
 <header>
   <h1>Email Sender</h1>
   <span class="badge">Resend</span>
+  <form method="POST" action="/logout" style="margin-left:auto;">
+    <button type="submit" style="background:none;border:1px solid #fdf6ef;color:#fdf6ef;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">Sign out</button>
+  </form>
 </header>
 
 <div class="app">
@@ -911,6 +914,13 @@ document.getElementById('btn-download-html').addEventListener('click', async () 
     a.click();
     URL.revokeObjectURL(url);
   } catch (e) { showStatus('Download failed: ' + e.message, 'error'); }
+});
+
+// ─── API KEY PERSISTENCE ──────────────────────────────────────────────────────
+const apiKeyInput = document.getElementById('api-key');
+apiKeyInput.value = localStorage.getItem('resendApiKey') || '';
+apiKeyInput.addEventListener('input', () => {
+  localStorage.setItem('resendApiKey', apiKeyInput.value.trim());
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
