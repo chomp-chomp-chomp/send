@@ -75,12 +75,47 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+// Renders a "part | part | part" string the same way {{location}} does,
+// except the last part is dropped to its own line (used for event detail lines).
+function formatDetailParts(str) {
+  const parts = String(str || '').split('|').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return escapeHtml(parts[0]);
+  const last = parts[parts.length - 1];
+  const rest = parts.slice(0, -1).map(escapeHtml).join(' &bull; ');
+  return `${rest}<br>${escapeHtml(last)}`;
+}
+
+// Builds the repeating-event markup for {{eventsHtml}} from a raw events array,
+// mirroring how bodyParagraphs is turned into <p> tags below.
+function buildEventsHtml(events) {
+  const list = Array.isArray(events) ? events : [];
+  if (!list.length) return '';
+  return list.map((ev, i) => {
+    const padTop = i === 0 ? 32 : 28;
+    const padBottom = i === list.length - 1 ? 32 : 8;
+    const divider = i < list.length - 1
+      ? `<tr><td style="padding:28px 44px 0;"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="height:1px;background-color:#f0e8de;font-size:0;">&nbsp;</td></tr></table></td></tr>`
+      : '';
+    return `<tr>
+  <td class="body-pad" style="padding:${padTop}px 44px ${padBottom}px;">
+    <p style="margin:0 0 6px;font-family:Verdana, Geneva, sans-serif;font-size:12px;font-weight:600;color:#e8956d;letter-spacing:0.08em;text-transform:uppercase;">${escapeHtml(ev.date)}</p>
+    <h2 style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#3d2e24;">${escapeHtml(ev.title)}</h2>
+    <p style="margin:0 0 14px;font-family:Verdana, Geneva, sans-serif;font-size:14px;line-height:1.7;color:#4a3a30;">${escapeHtml(ev.body)}</p>
+    <p style="margin:0 0 16px;font-family:Verdana, Geneva, sans-serif;font-size:14px;color:#4a3a30;line-height:1.7;">${formatDetailParts(ev.detail)}</p>
+    <a href="${escapeHtml(ev.rsvpLink || '#')}" style="display:inline-block;background-color:#e8956d;color:#ffffff;font-family:Verdana, Geneva, sans-serif;font-size:14px;font-weight:600;letter-spacing:0.04em;text-decoration:none;padding:12px 34px;border-radius:50px;">${escapeHtml(ev.rsvpText || 'Register')}</a>
+  </td>
+</tr>
+${divider}`;
+  }).join('\n');
+}
+
 function renderTemplate(html, data) {
   const {
     title = '', subtitle = '', date = '', time = '',
     location = '', rsvpLink = '', rsvpText = '',
     bodyParagraphs = [], contactName = '', contactEmail = '',
-    subject = '',
+    subject = '', events = [],
   } = data;
 
   const locationFormatted = location
@@ -94,6 +129,8 @@ function renderTemplate(html, data) {
     .map(p => `<p style="margin:0 0 1em;">${escapeHtml(p)}</p>`)
     .join('\n');
 
+  const eventsHtml = buildEventsHtml(events);
+
   return html
     .replace(/\{\{title\}\}/g, escapeHtml(title))
     .replace(/\{\{subtitle\}\}/g, escapeHtml(subtitle))
@@ -105,7 +142,8 @@ function renderTemplate(html, data) {
     .replace(/\{\{bodyParagraphs\}\}/g, paragraphsHtml)
     .replace(/\{\{contactName\}\}/g, escapeHtml(contactName))
     .replace(/\{\{contactEmail\}\}/g, escapeHtml(contactEmail))
-    .replace(/\{\{subject\}\}/g, escapeHtml(subject));
+    .replace(/\{\{subject\}\}/g, escapeHtml(subject))
+    .replace(/\{\{eventsHtml\}\}/g, eventsHtml);
 }
 
 // ─── DEFAULT TEMPLATE ─────────────────────────────────────────────────────────
