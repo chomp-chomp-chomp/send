@@ -239,7 +239,7 @@ const DEFAULT_TEMPLATE = {
 // ─── TEMPLATE ROUTES ──────────────────────────────────────────────────────────
 app.get('/api/templates', (req, res) => {
   const templates = readTemplates();
-  res.json(templates.map(({ id, name }) => ({ id, name })));
+  res.json(templates.map(({ id, name, html }) => ({ id, name, html })));
 });
 
 app.get('/api/templates/:id', (req, res) => {
