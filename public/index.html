@@ -107,6 +107,18 @@
     }
     .btn-add-para:hover { border-color: #e8956d; color: #e8956d; }
 
+    /* Events (repeating) */
+    .event-item {
+      position: relative; border: 1px solid #f0e8de; border-radius: 8px;
+      padding: 14px 32px 14px 14px; background: #fdf6ef;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .event-item .ev-remove {
+      position: absolute; top: 8px; right: 8px; background: none; border: none;
+      color: #c4a898; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 3px;
+    }
+    .event-item .ev-remove:hover { color: #e8956d; }
+
     /* ── RECIPIENTS ── */
     .recipient-count { font-size: 12px; color: #a08878; }
     .recipient-count strong { color: #3d2e24; }
@@ -307,6 +319,10 @@
       <div id="paragraphs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
       <button class="btn-add-para" id="btn-add-para">+ Add paragraph</button>
 
+      <div class="section-label">Events (repeating) — <code style="font-size:10px;color:#e8956d;">{{eventsHtml}}</code></div>
+      <div id="events-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <button class="btn-add-para" id="btn-add-event">+ Add event</button>
+
       <div class="section-label">Contact</div>
       <div class="field-row">
         <div class="field">
@@ -368,6 +384,7 @@
             <code>{{rsvpLink}}</code>      <span>RSVP URL (use in href)</span>
             <code>{{rsvpText}}</code>      <span>RSVP link/button text</span>
             <code>{{bodyParagraphs}}</code><span>Body text, rendered as &lt;p&gt; tags</span>
+            <code>{{eventsHtml}}</code>    <span>Repeating event blocks, built server-side from the Events section</span>
             <code>{{contactName}}</code>   <span>Contact person's name</span>
             <code>{{contactEmail}}</code>  <span>Contact email (use in mailto:)</span>
             <code>{{subject}}</code>       <span>Email subject line</span>
@@ -450,6 +467,41 @@ function populateDefaults() {
     'Come ready to share — and if you have a recipe that holds a special place, bring that too. There\'s no wrong answer, no competition; just the stories behind the food.',
     'Open to all employees. Cookies will be provided.',
   ].forEach(addParagraph);
+
+  [
+    {
+      date: 'July 16',
+      title: 'Mug Cakes X Thirty-Two',
+      body: "So, people have been talking. They heard there was a demo by The Baking Experience, something about cake in a mug? Why didn't they come the first time? Maybe the thought was: that's not for me. But it was. It always was. Well, we're having a second round, this time in the Hub on 32. It takes 75 seconds and requires nothing except a mug, a microwave, and a willingness to be surprised. Ingredients provided.",
+      detail: 'Thursday, July 17th | 3:00–4:00 PM EDT | NYO 32nd Floor Hub',
+      rsvpLink: '#',
+      rsvpText: 'Register',
+    },
+    {
+      date: 'July 28',
+      title: 'Seriously, Pie. A Rich and Contested History',
+      body: 'Few foods have a history as rich — or as contested — as the pie. In this talk, culinary historian Stephen Schmidt traces the evolution of pies and tarts from the earliest European manuscript recipe books of the thirteenth century through the development of the American pie from the colonial era to the present day. Along the way, he examines how attitudes toward pie have shifted across time and social class, including the surprisingly dim view that American privileged classes held toward pie for much of the nineteenth century.',
+      detail: 'Tuesday, July 28th | 12:00–1:00 PM EDT | Hybrid: NYO Room TBD + Webex link',
+      rsvpLink: '#',
+      rsvpText: 'Register',
+    },
+    {
+      date: 'August 11',
+      title: 'Obsessions: A Short History of Wheat Bread',
+      body: 'Author and food historian Andrew Coe will trace the full arc of whole wheat bread in America — from the zealous dietary crusades of Sylvester Graham through the health food movements and countercultural bread baking of the twentieth century, all the way to today\'s artisan sourdough revival. Coe brings this story to life drawing on his definitive new book, "American Bread," a cultural history that connects the humble loaf to the evolving story of American agriculture, industry, immigration, and ideas about health.',
+      detail: 'Tuesday, August 11th | 6:00–7:00 PM EDT | NYO Room TBD',
+      rsvpLink: '#',
+      rsvpText: 'Register',
+    },
+    {
+      date: 'August 25',
+      title: 'Cupcakes (Finally)',
+      body: "Cupcakes have a reputation as the forgiving dessert: small, contained, hard to ruin. We intend to test that theory. Over two hours at the NY Cake Academy, professional instructors will walk us through actual technique — mixing, baking, frosting, piping — the kind that exists specifically because \"just wing it\" just doesn't cut it. Come for the skills, stay for the camaraderie. It's what The Baking Experience runs on: shared Firm, mild chaos, and the collective decision to take dessert very, very seriously.",
+      detail: 'Tuesday, August 25th | 6:00–8:00 PM EDT | NY Cake Academy, 118 West 22nd Street',
+      rsvpLink: '#',
+      rsvpText: 'Register',
+    },
+  ].forEach(addEvent);
 }
 
 // ─── PARAGRAPHS ───────────────────────────────────────────────────────────────
@@ -466,8 +518,45 @@ function addParagraph(text = '') {
 
 document.getElementById('btn-add-para').addEventListener('click', () => { addParagraph(); });
 
+// ─── EVENTS (repeating) ─────────────────────────────────────────────────────
+function addEvent(data = {}) {
+  const list = document.getElementById('events-list');
+  const item = document.createElement('div');
+  item.className = 'event-item';
+  item.innerHTML = `
+    <button class="ev-remove" title="Remove event">×</button>
+    <div class="field-row">
+      <div class="field"><label>Date Label</label><input type="text" class="ev-date" placeholder="July 16"></div>
+      <div class="field"><label>RSVP Text</label><input type="text" class="ev-rsvptext" placeholder="Register"></div>
+    </div>
+    <div class="field"><label>Event Title</label><input type="text" class="ev-title" placeholder="Mug Cakes X Thirty-Two"></div>
+    <div class="field"><label>Body</label><textarea class="ev-body" rows="3" placeholder="Event description…"></textarea></div>
+    <div class="field"><label>Detail line — separate parts with |</label><input type="text" class="ev-detail" placeholder="Thursday, July 17th | 3:00–4:00 PM EDT | NYO 32nd Floor Hub"></div>
+    <div class="field"><label>RSVP URL</label><input type="url" class="ev-rsvplink" placeholder="https://..."></div>
+  `;
+  item.querySelector('.ev-date').value = data.date || '';
+  item.querySelector('.ev-title').value = data.title || '';
+  item.querySelector('.ev-body').value = data.body || '';
+  item.querySelector('.ev-detail').value = data.detail || '';
+  item.querySelector('.ev-rsvplink').value = data.rsvpLink || '';
+  item.querySelector('.ev-rsvptext').value = data.rsvpText || 'Register';
+  item.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', schedulePreview));
+  item.querySelector('.ev-remove').addEventListener('click', () => { item.remove(); schedulePreview(); });
+  list.appendChild(item);
+}
+
+document.getElementById('btn-add-event').addEventListener('click', () => { addEvent(); });
+
 // ─── FORM DATA ────────────────────────────────────────────────────────────────
 function getEmailData() {
+  const events = Array.from(document.querySelectorAll('#events-list .event-item')).map(item => ({
+    date: item.querySelector('.ev-date').value,
+    title: item.querySelector('.ev-title').value,
+    body: item.querySelector('.ev-body').value,
+    detail: item.querySelector('.ev-detail').value,
+    rsvpLink: item.querySelector('.ev-rsvplink').value,
+    rsvpText: item.querySelector('.ev-rsvptext').value,
+  }));
   return {
     subject: document.getElementById('f-subject').value,
     fromName: document.getElementById('f-from-name').value,
@@ -483,6 +572,7 @@ function getEmailData() {
     contactName: document.getElementById('f-contact-name').value,
     contactEmail: document.getElementById('f-contact-email').value,
     bodyParagraphs: Array.from(document.querySelectorAll('#paragraphs-list textarea')).map(t => t.value),
+    events,
   };
 }
 
