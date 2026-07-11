@@ -281,16 +281,16 @@
         <input type="email" id="f-reply-to" placeholder="replies@yourdomain.com">
       </div>
 
-      <div class="section-label">Event Info</div>
-      <div class="field">
+      <div class="section-label" id="event-info-label">Event Info</div>
+      <div class="field" data-token="title">
         <label>Title — <code style="font-size:10px;color:#e8956d;">{{title}}</code></label>
         <input type="text" id="f-title" placeholder="Stories &amp; Recipes">
       </div>
-      <div class="field">
+      <div class="field" data-token="subtitle">
         <label>Subtitle — <code style="font-size:10px;color:#e8956d;">{{subtitle}}</code></label>
         <input type="text" id="f-subtitle" placeholder="Inaugural Meeting">
       </div>
-      <div class="field-row">
+      <div class="field-row" data-token="date,time">
         <div class="field">
           <label>Date — <code style="font-size:10px;color:#e8956d;">{{date}}</code></label>
           <input type="text" id="f-date" placeholder="Tuesday, April 7, 2026">
@@ -300,11 +300,11 @@
           <input type="text" id="f-time" placeholder="1:00–2:00 pm EDT">
         </div>
       </div>
-      <div class="field">
+      <div class="field" data-token="location">
         <label>Location — <code style="font-size:10px;color:#e8956d;">{{location}}</code> (separate parts with |)</label>
         <input type="text" id="f-location" placeholder="New York Office | Room 39-308">
       </div>
-      <div class="field-row">
+      <div class="field-row" data-token="rsvpLink,rsvpText">
         <div class="field">
           <label>RSVP URL — <code style="font-size:10px;color:#e8956d;">{{rsvpLink}}</code></label>
           <input type="url" id="f-rsvp-link" placeholder="https://...">
@@ -315,23 +315,29 @@
         </div>
       </div>
 
-      <div class="section-label">Body — <code style="font-size:10px;color:#e8956d;">{{bodyParagraphs}}</code></div>
-      <div id="paragraphs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      <button class="btn-add-para" id="btn-add-para">+ Add paragraph</button>
+      <div data-token="bodyParagraphs">
+        <div class="section-label">Body — <code style="font-size:10px;color:#e8956d;">{{bodyParagraphs}}</code></div>
+        <div id="paragraphs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <button class="btn-add-para" id="btn-add-para">+ Add paragraph</button>
+      </div>
 
-      <div class="section-label">Events (repeating) — <code style="font-size:10px;color:#e8956d;">{{eventsHtml}}</code></div>
-      <div id="events-list" style="display:flex;flex-direction:column;gap:10px;"></div>
-      <button class="btn-add-para" id="btn-add-event">+ Add event</button>
+      <div data-token="eventsHtml">
+        <div class="section-label">Events (repeating) — <code style="font-size:10px;color:#e8956d;">{{eventsHtml}}</code></div>
+        <div id="events-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button class="btn-add-para" id="btn-add-event">+ Add event</button>
+      </div>
 
-      <div class="section-label">Contact</div>
-      <div class="field-row">
-        <div class="field">
-          <label>Name — <code style="font-size:10px;color:#e8956d;">{{contactName}}</code></label>
-          <input type="text" id="f-contact-name" placeholder="Don Boman">
-        </div>
-        <div class="field">
-          <label>Email — <code style="font-size:10px;color:#e8956d;">{{contactEmail}}</code></label>
-          <input type="email" id="f-contact-email" placeholder="contact@example.com">
+      <div data-token="contactName,contactEmail">
+        <div class="section-label">Contact</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Name — <code style="font-size:10px;color:#e8956d;">{{contactName}}</code></label>
+            <input type="text" id="f-contact-name" placeholder="Don Boman">
+          </div>
+          <div class="field">
+            <label>Email — <code style="font-size:10px;color:#e8956d;">{{contactEmail}}</code></label>
+            <input type="email" id="f-contact-email" placeholder="contact@example.com">
+          </div>
         </div>
       </div>
     </div>
@@ -622,7 +628,23 @@ async function loadTemplates() {
   } catch (e) { console.error('Failed to load templates', e); }
 }
 
+function applyFieldVisibility() {
+  const t = templates.find(t => t.id === currentTemplateId);
+  const used = new Set();
+  for (const m of ((t && t.html) || '').matchAll(/\{\{(\w+)\}\}/g)) used.add(m[1]);
+
+  document.querySelectorAll('#tab-compose [data-token]').forEach(el => {
+    const tokens = el.dataset.token.split(',');
+    el.style.display = tokens.some(tok => used.has(tok)) ? '' : 'none';
+  });
+
+  const eventInfoTokens = ['title', 'subtitle', 'date', 'time', 'location', 'rsvpLink', 'rsvpText'];
+  document.getElementById('event-info-label').style.display =
+    eventInfoTokens.some(tok => used.has(tok)) ? '' : 'none';
+}
+
 function renderTemplateList() {
+  applyFieldVisibility();
   const list = document.getElementById('template-list');
   if (!templates.length) {
     list.innerHTML = '<div class="empty-state">No templates.</div>';
