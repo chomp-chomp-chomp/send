@@ -3,7 +3,7 @@ const { Resend } = require('resend');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
-const { randomUUID } = require('crypto');
+const { randomUUID, createHmac, timingSafeEqual } = require('crypto');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -14,21 +14,107 @@ app.get('/health', (req, res) => res.send('ok'));
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 const AUTH_USER = process.env.AUTH_USER;
 const AUTH_PASS = process.env.AUTH_PASS;
+const SESSION_COOKIE = 'send_auth';
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function parseCookies(req) {
+  const out = {};
+  const header = req.headers.cookie;
+  if (!header) return out;
+  header.split(';').forEach(pair => {
+    const i = pair.indexOf('=');
+    if (i === -1) return;
+    out[pair.slice(0, i).trim()] = decodeURIComponent(pair.slice(i + 1).trim());
+  });
+  return out;
+}
+
+function signSession(expiry) {
+  return createHmac('sha256', AUTH_PASS).update(`${AUTH_USER}:${expiry}`).digest('hex');
+}
+
+function verifySessionCookie(value) {
+  if (!value) return false;
+  const [expiryStr, sig] = value.split('.');
+  const expiry = Number(expiryStr);
+  if (!expiry || !sig || Date.now() > expiry) return false;
+  const expected = signSession(expiry);
+  return expected.length === sig.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+}
+
+function setSessionCookie(req, res) {
+  const expiry = Date.now() + SESSION_MAX_AGE_MS;
+  const value = `${expiry}.${signSession(expiry)}`;
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const attrs = [
+    `${SESSION_COOKIE}=${encodeURIComponent(value)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${Math.floor(SESSION_MAX_AGE_MS / 1000)}`,
+  ];
+  if (isHttps) attrs.push('Secure');
+  res.set('Set-Cookie', attrs.join('; '));
+}
 
 if (AUTH_USER && AUTH_PASS) {
-  app.use((req, res, next) => {
-    const header = req.headers['authorization'];
-    if (!header || !header.startsWith('Basic ')) {
-      res.set('WWW-Authenticate', 'Basic realm="Email Sender"');
-      return res.status(401).send('Authentication required.');
-    }
-    const [user, pass] = Buffer.from(header.slice(6), 'base64').toString().split(':');
-    if (user !== AUTH_USER || pass !== AUTH_PASS) {
-      res.set('WWW-Authenticate', 'Basic realm="Email Sender"');
-      return res.status(401).send('Invalid credentials.');
-    }
-    next();
+  app.use(express.urlencoded({ extended: false }));
+
+  app.get('/login', (req, res) => {
+    if (verifySessionCookie(parseCookies(req)[SESSION_COOKIE])) return res.redirect('/');
+    res.type('html').send(LOGIN_PAGE());
   });
+
+  app.post('/login', (req, res) => {
+    const { username, password } = req.body || {};
+    if (username !== AUTH_USER || password !== AUTH_PASS) {
+      return res.type('html').send(LOGIN_PAGE('Invalid username or password.'));
+    }
+    setSessionCookie(req, res);
+    res.redirect('/');
+  });
+
+  app.post('/logout', (req, res) => {
+    res.set('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; Max-Age=0`);
+    res.redirect('/login');
+  });
+
+  app.use((req, res, next) => {
+    if (verifySessionCookie(parseCookies(req)[SESSION_COOKIE])) return next();
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Authentication required.' });
+    res.redirect('/login');
+  });
+}
+
+function LOGIN_PAGE(error) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in – Email Sender</title>
+<style>
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:#f7f3ee; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; }
+  form { background:#fffdf9; border:1px solid #f0e8de; border-radius:12px; padding:32px; width:280px; box-shadow:0 2px 16px rgba(0,0,0,0.07); }
+  h1 { margin:0 0 20px; font-size:16px; color:#3d2e24; }
+  label { display:block; font-size:12px; font-weight:600; color:#3d2e24; margin-bottom:4px; }
+  input { width:100%; padding:8px 10px; margin-bottom:14px; border:1px solid #e0d5c8; border-radius:6px; font-size:14px; box-sizing:border-box; }
+  button { width:100%; padding:10px; border:none; border-radius:6px; background:#e8956d; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
+  .error { color:#c0392b; font-size:12px; margin:-6px 0 14px; }
+</style>
+</head>
+<body>
+  <form method="POST" action="/login">
+    <h1>Email Sender – Sign in</h1>
+    ${error ? `<div class="error">${error}</div>` : ''}
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+  </form>
+</body>
+</html>`;
 }
 
 app.use(express.json({ limit: '2mb' }));
