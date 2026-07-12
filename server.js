@@ -418,6 +418,27 @@ app.delete('/api/templates/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Replaces the entire template list, e.g. from a previously exported/edited JSON file.
+app.post('/api/templates/import', (req, res) => {
+  const incoming = req.body.templates;
+  if (!Array.isArray(incoming) || incoming.length === 0) {
+    return res.status(400).json({ error: 'templates must be a non-empty array' });
+  }
+  for (const t of incoming) {
+    if (!t || typeof t !== 'object' || !t.name || !t.html) {
+      return res.status(400).json({ error: 'Each template needs a name and html' });
+    }
+  }
+  const templates = incoming.map(t => ({
+    id: t.id || randomUUID(),
+    name: t.name,
+    html: t.html,
+    theme: mergeTheme(t.theme),
+  }));
+  writeTemplates(templates);
+  res.json(templates);
+});
+
 // ─── DRAFTS ───────────────────────────────────────────────────────────────────
 app.get('/api/drafts', (req, res) => {
   res.json(readDrafts());

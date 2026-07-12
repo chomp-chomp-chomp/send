@@ -369,6 +369,8 @@
         <div class="section-label" style="border:none;padding:0;margin:0;">Templates</div>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-secondary btn-sm" id="btn-export-templates">Export all</button>
+          <button class="btn btn-secondary btn-sm" id="btn-import-templates">Import</button>
+          <input type="file" id="import-templates-file" accept=".json" style="display:none;">
           <button class="btn btn-secondary btn-sm" id="btn-new-template">+ New</button>
         </div>
       </div>
@@ -904,6 +906,40 @@ document.getElementById('btn-export-templates').addEventListener('click', async 
     a.click();
     URL.revokeObjectURL(url);
   } catch (e) { alert('Failed to export templates.'); }
+});
+
+document.getElementById('btn-import-templates').addEventListener('click', () => {
+  document.getElementById('import-templates-file').click();
+});
+
+document.getElementById('import-templates-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch (err) { alert('That file is not valid JSON.'); return; }
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    alert('Expected a non-empty JSON array of templates (as produced by "Export all").');
+    return;
+  }
+  if (!confirm(`This will replace all ${templates.length} current template(s) with the ${parsed.length} template(s) in this file. Continue?`)) return;
+
+  try {
+    const res = await fetch('/api/templates/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ templates: parsed }),
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error); return; }
+    currentTemplateId = data[0].id;
+    await loadTemplates();
+    schedulePreview();
+  } catch (err) { alert('Failed to import templates.'); }
 });
 
 function showEditor() {
