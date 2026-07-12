@@ -367,7 +367,10 @@
     <div class="tab-content" id="tab-templates">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div class="section-label" style="border:none;padding:0;margin:0;">Templates</div>
-        <button class="btn btn-secondary btn-sm" id="btn-new-template">+ New</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" id="btn-export-templates">Export all</button>
+          <button class="btn btn-secondary btn-sm" id="btn-new-template">+ New</button>
+        </div>
       </div>
 
       <div id="template-list" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -887,6 +890,20 @@ document.getElementById('btn-new-template').addEventListener('click', () => {
   document.getElementById('te-html').value = STARTER_TEMPLATE_HTML;
   setThemeForm(THEME_DEFAULTS);
   showEditor();
+});
+
+document.getElementById('btn-export-templates').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/templates');
+    const data = await res.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'templates-export.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { alert('Failed to export templates.'); }
 });
 
 function showEditor() {
