@@ -379,6 +379,66 @@
           <label>Template Name</label>
           <input type="text" id="te-name" placeholder="e.g. Book Club Invite">
         </div>
+        <div class="section-label">Design</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Page background</label>
+            <input type="color" id="te-theme-pageBg">
+          </div>
+          <div class="field">
+            <label>Card background</label>
+            <input type="color" id="te-theme-cardBg">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Text color</label>
+            <input type="color" id="te-theme-textColor">
+          </div>
+          <div class="field">
+            <label>Accent color</label>
+            <input type="color" id="te-theme-accentColor">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Heading font</label>
+            <select id="te-theme-headingFont">
+              <option value="Cambria, Georgia, 'Times New Roman', serif">Cambria (serif)</option>
+              <option value="Georgia, 'Times New Roman', serif">Georgia (serif)</option>
+              <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica (sans)</option>
+              <option value="Calibri, 'Helvetica Neue', Helvetica, Arial, sans-serif">Calibri (sans)</option>
+              <option value="Verdana, Geneva, sans-serif">Verdana (sans)</option>
+              <option value="'Courier New', Courier, monospace">Courier New (monospace)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Body font</label>
+            <select id="te-theme-bodyFont">
+              <option value="Cambria, Georgia, 'Times New Roman', serif">Cambria (serif)</option>
+              <option value="Georgia, 'Times New Roman', serif">Georgia (serif)</option>
+              <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica (sans)</option>
+              <option value="Calibri, 'Helvetica Neue', Helvetica, Arial, sans-serif">Calibri (sans)</option>
+              <option value="Verdana, Geneva, sans-serif">Verdana (sans)</option>
+              <option value="'Courier New', Courier, monospace">Courier New (monospace)</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Title size (px)</label>
+            <input type="number" id="te-theme-titleSize" min="24" max="56">
+          </div>
+          <div class="field">
+            <label>Subtitle size (px)</label>
+            <input type="number" id="te-theme-subtitleSize" min="10" max="20">
+          </div>
+        </div>
+        <div class="field">
+          <label>Body size (px)</label>
+          <input type="number" id="te-theme-bodySize" min="12" max="20" style="width:50%;">
+        </div>
+
         <div class="field">
           <label>HTML — use tokens below for dynamic content</label>
           <textarea id="te-html" placeholder="Paste your full email HTML here, with {{tokens}} where content should go…"></textarea>
@@ -398,6 +458,15 @@
             <code>{{contactName}}</code>   <span>Contact person's name</span>
             <code>{{contactEmail}}</code>  <span>Contact email (use in mailto:)</span>
             <code>{{subject}}</code>       <span>Email subject line</span>
+            <code>{{themePageBg}}</code>       <span>Page background color, set by the Design panel above</span>
+            <code>{{themeCardBg}}</code>       <span>Card background color, set by the Design panel above</span>
+            <code>{{themeTextColor}}</code>    <span>Primary text color, set by the Design panel above</span>
+            <code>{{themeAccentColor}}</code>  <span>Accent color (links, buttons), set by the Design panel above</span>
+            <code>{{themeHeadingFont}}</code>  <span>Heading font family, set by the Design panel above</span>
+            <code>{{themeBodyFont}}</code>     <span>Body font family, set by the Design panel above</span>
+            <code>{{themeTitleSize}}</code>    <span>Title font size in px — use as <code>{{themeTitleSize}}px</code></span>
+            <code>{{themeSubtitleSize}}</code> <span>Subtitle font size in px</span>
+            <code>{{themeBodySize}}</code>     <span>Body text font size in px</span>
           </div>
         </details>
         <div style="display:flex;gap:8px;">
@@ -460,6 +529,79 @@ let currentTemplateId = null;
 let previewTimer = null;
 let drafts = [];
 let currentDraftId = null;
+
+const THEME_DEFAULTS = {
+  pageBg:      '#f7f3ee',
+  cardBg:      '#fffdf9',
+  textColor:   '#3d2e24',
+  accentColor: '#e8956d',
+  headingFont: "Cambria, Georgia, 'Times New Roman', serif",
+  bodyFont:    "Calibri, 'Helvetica Neue', Helvetica, Arial, sans-serif",
+  titleSize:    40,
+  subtitleSize: 13,
+  bodySize:     15,
+};
+
+const STARTER_TEMPLATE_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{title}}</title>
+</head>
+<body style="margin:0;padding:0;background-color:{{themePageBg}};font-family:{{themeBodyFont}};">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{{themePageBg}};">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;margin:0 auto;background-color:{{themeCardBg}};border-radius:12px;overflow:hidden;">
+          <tr>
+            <td align="center" style="padding:32px 40px 8px;">
+              <p style="margin:0 0 10px;font-family:{{themeBodyFont}};font-size:{{themeSubtitleSize}}px;color:{{themeTextColor}};letter-spacing:0.06em;">{{subtitle}}</p>
+              <h1 style="margin:0 0 16px;font-family:{{themeHeadingFont}};font-size:{{themeTitleSize}}px;font-weight:normal;color:{{themeTextColor}};">{{title}}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 40px 24px;font-family:{{themeBodyFont}};font-size:{{themeBodySize}}px;color:{{themeTextColor}};line-height:1.7;">
+              {{bodyParagraphs}}
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:0 40px 32px;">
+              <a href="{{rsvpLink}}" style="font-family:{{themeBodyFont}};font-size:16px;font-weight:700;color:{{themeAccentColor}};text-decoration:none;">{{rsvpText}}</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+function getThemeFromForm() {
+  return {
+    pageBg: document.getElementById('te-theme-pageBg').value,
+    cardBg: document.getElementById('te-theme-cardBg').value,
+    textColor: document.getElementById('te-theme-textColor').value,
+    accentColor: document.getElementById('te-theme-accentColor').value,
+    headingFont: document.getElementById('te-theme-headingFont').value,
+    bodyFont: document.getElementById('te-theme-bodyFont').value,
+    titleSize: Number(document.getElementById('te-theme-titleSize').value) || THEME_DEFAULTS.titleSize,
+    subtitleSize: Number(document.getElementById('te-theme-subtitleSize').value) || THEME_DEFAULTS.subtitleSize,
+    bodySize: Number(document.getElementById('te-theme-bodySize').value) || THEME_DEFAULTS.bodySize,
+  };
+}
+
+function setThemeForm(theme) {
+  const t = { ...THEME_DEFAULTS, ...(theme || {}) };
+  document.getElementById('te-theme-pageBg').value = t.pageBg;
+  document.getElementById('te-theme-cardBg').value = t.cardBg;
+  document.getElementById('te-theme-textColor').value = t.textColor;
+  document.getElementById('te-theme-accentColor').value = t.accentColor;
+  document.getElementById('te-theme-headingFont').value = t.headingFont;
+  document.getElementById('te-theme-bodyFont').value = t.bodyFont;
+  document.getElementById('te-theme-titleSize').value = t.titleSize;
+  document.getElementById('te-theme-subtitleSize').value = t.subtitleSize;
+  document.getElementById('te-theme-bodySize').value = t.bodySize;
+}
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.panel-tab').forEach(tab => {
@@ -638,13 +780,14 @@ function schedulePreview() {
   previewTimer = setTimeout(updatePreview, 300);
 }
 
-async function updatePreview(overrideHtml) {
+async function updatePreview(overrideHtml, overrideTheme) {
   const body = { emailData: getEmailData() };
   if (overrideHtml) {
     body.templateHtml = overrideHtml;
   } else {
     body.templateId = currentTemplateId;
   }
+  if (overrideTheme) body.theme = overrideTheme;
   try {
     const res = await fetch('/api/preview', {
       method: 'POST',
@@ -716,6 +859,7 @@ window.startEditTemplate = async function(id) {
     document.getElementById('te-id').value = t.id;
     document.getElementById('te-name').value = t.name;
     document.getElementById('te-html').value = t.html;
+    setThemeForm(t.theme);
     showEditor();
   } catch (e) { alert('Failed to load template.'); }
 };
@@ -740,7 +884,8 @@ window.deleteTemplate = async function(id) {
 document.getElementById('btn-new-template').addEventListener('click', () => {
   document.getElementById('te-id').value = '';
   document.getElementById('te-name').value = '';
-  document.getElementById('te-html').value = '';
+  document.getElementById('te-html').value = STARTER_TEMPLATE_HTML;
+  setThemeForm(THEME_DEFAULTS);
   showEditor();
 });
 
@@ -753,14 +898,17 @@ function hideEditor() {
   document.getElementById('template-editor').style.display = 'none';
 }
 
-// Live preview from template editor while typing HTML
-document.getElementById('te-html').addEventListener('input', () => {
+// Live preview from template editor while editing HTML or Design fields
+function scheduleEditorPreview() {
   clearTimeout(previewTimer);
   previewTimer = setTimeout(() => {
     const html = document.getElementById('te-html').value;
-    if (html.trim()) updatePreview(html);
+    if (html.trim()) updatePreview(html, getThemeFromForm());
   }, 400);
-});
+}
+document.getElementById('te-html').addEventListener('input', scheduleEditorPreview);
+document.querySelectorAll('#template-editor input[id^="te-theme-"], #template-editor select[id^="te-theme-"]')
+  .forEach(el => el.addEventListener('input', scheduleEditorPreview));
 
 document.getElementById('btn-cancel-template').addEventListener('click', hideEditor);
 
@@ -779,7 +927,7 @@ document.getElementById('btn-save-template').addEventListener('click', async () 
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, html }),
+      body: JSON.stringify({ name, html, theme: getThemeFromForm() }),
     });
     const t = await res.json();
     if (!res.ok) { alert(t.error); return; }

@@ -162,6 +162,23 @@ function writeDrafts(d) {
   fs.writeFileSync(DRAFTS_FILE, JSON.stringify(d, null, 2));
 }
 
+// ─── THEME ────────────────────────────────────────────────────────────────────
+const THEME_DEFAULTS = {
+  pageBg:      '#f7f3ee',
+  cardBg:      '#fffdf9',
+  textColor:   '#3d2e24',
+  accentColor: '#e8956d',
+  headingFont: "Cambria, Georgia, 'Times New Roman', serif",
+  bodyFont:    "Calibri, 'Helvetica Neue', Helvetica, Arial, sans-serif",
+  titleSize:    40,
+  subtitleSize: 13,
+  bodySize:     15,
+};
+
+function mergeTheme(theme) {
+  return { ...THEME_DEFAULTS, ...(theme || {}) };
+}
+
 // ─── TEMPLATE RENDERING ───────────────────────────────────────────────────────
 function escapeHtml(str) {
   if (!str) return '';
@@ -185,9 +202,17 @@ function formatDetailParts(str) {
 
 // Builds the repeating-event markup for {{eventsHtml}} from a raw events array,
 // mirroring how bodyParagraphs is turned into <p> tags below.
-function buildEventsHtml(events) {
+function buildEventsHtml(events, theme) {
   const list = Array.isArray(events) ? events : [];
   if (!list.length) return '';
+  const raw = mergeTheme(theme);
+  const t = {
+    accentColor: escapeHtml(String(raw.accentColor)),
+    textColor: escapeHtml(String(raw.textColor)),
+    headingFont: escapeHtml(String(raw.headingFont)),
+    bodyFont: escapeHtml(String(raw.bodyFont)),
+    bodySize: escapeHtml(String(raw.bodySize)),
+  };
   return list.map((ev, i) => {
     const padTop = i === 0 ? 32 : 28;
     const padBottom = i === list.length - 1 ? 32 : 8;
@@ -196,24 +221,25 @@ function buildEventsHtml(events) {
       : '';
     return `<tr>
   <td class="body-pad" style="padding:${padTop}px 44px ${padBottom}px;">
-    <p style="margin:0 0 6px;font-family:Verdana, Geneva, sans-serif;font-size:12px;font-weight:600;color:#e8956d;letter-spacing:0.08em;text-transform:uppercase;">${escapeHtml(ev.date)}</p>
-    <h2 style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#3d2e24;">${escapeHtml(ev.title)}</h2>
-    <p style="margin:0 0 14px;font-family:Verdana, Geneva, sans-serif;font-size:14px;line-height:1.7;color:#4a3a30;">${escapeHtml(ev.body)}</p>
-    <p style="margin:0 0 16px;font-family:Verdana, Geneva, sans-serif;font-size:14px;color:#4a3a30;line-height:1.7;">${formatDetailParts(ev.detail)}</p>
-    <a href="${escapeHtml(ev.rsvpLink || '#')}" style="display:inline-block;background-color:#e8956d;color:#ffffff;font-family:Verdana, Geneva, sans-serif;font-size:14px;font-weight:600;letter-spacing:0.04em;text-decoration:none;padding:12px 34px;border-radius:50px;">${escapeHtml(ev.rsvpText || 'Register')}</a>
+    <p style="margin:0 0 6px;font-family:Verdana, Geneva, sans-serif;font-size:12px;font-weight:600;color:${t.accentColor};letter-spacing:0.08em;text-transform:uppercase;">${escapeHtml(ev.date)}</p>
+    <h2 style="margin:0 0 10px;font-family:${t.headingFont};font-size:22px;font-weight:normal;color:${t.textColor};">${escapeHtml(ev.title)}</h2>
+    <p style="margin:0 0 14px;font-family:${t.bodyFont};font-size:${t.bodySize}px;line-height:1.7;color:${t.textColor};">${escapeHtml(ev.body)}</p>
+    <p style="margin:0 0 16px;font-family:${t.bodyFont};font-size:${t.bodySize}px;color:${t.textColor};line-height:1.7;">${formatDetailParts(ev.detail)}</p>
+    <a href="${escapeHtml(ev.rsvpLink || '#')}" style="display:inline-block;background-color:${t.accentColor};color:#ffffff;font-family:Verdana, Geneva, sans-serif;font-size:14px;font-weight:600;letter-spacing:0.04em;text-decoration:none;padding:12px 34px;border-radius:50px;">${escapeHtml(ev.rsvpText || 'Register')}</a>
   </td>
 </tr>
 ${divider}`;
   }).join('\n');
 }
 
-function renderTemplate(html, data) {
+function renderTemplate(html, data, theme) {
   const {
     title = '', subtitle = '', date = '', time = '',
     location = '', rsvpLink = '', rsvpText = '',
     bodyParagraphs = [], contactName = '', contactEmail = '',
     subject = '', events = [],
   } = data;
+  const t = mergeTheme(theme);
 
   const locationFormatted = location
     .split('|')
@@ -226,27 +252,43 @@ function renderTemplate(html, data) {
     .map(p => `<p style="margin:0 0 1em;">${escapeHtml(p)}</p>`)
     .join('\n');
 
-  const eventsHtml = buildEventsHtml(events);
+  const eventsHtml = buildEventsHtml(events, t);
 
-  return html
-    .replace(/\{\{title\}\}/g, escapeHtml(title))
-    .replace(/\{\{subtitle\}\}/g, escapeHtml(subtitle))
-    .replace(/\{\{date\}\}/g, escapeHtml(date))
-    .replace(/\{\{time\}\}/g, escapeHtml(time))
-    .replace(/\{\{location\}\}/g, locationFormatted)
-    .replace(/\{\{rsvpLink\}\}/g, escapeHtml(rsvpLink))
-    .replace(/\{\{rsvpText\}\}/g, escapeHtml(rsvpText))
-    .replace(/\{\{bodyParagraphs\}\}/g, paragraphsHtml)
-    .replace(/\{\{contactName\}\}/g, escapeHtml(contactName))
-    .replace(/\{\{contactEmail\}\}/g, escapeHtml(contactEmail))
-    .replace(/\{\{subject\}\}/g, escapeHtml(subject))
-    .replace(/\{\{eventsHtml\}\}/g, eventsHtml);
+  const tokens = {
+    title: escapeHtml(title),
+    subtitle: escapeHtml(subtitle),
+    date: escapeHtml(date),
+    time: escapeHtml(time),
+    location: locationFormatted,
+    rsvpLink: escapeHtml(rsvpLink),
+    rsvpText: escapeHtml(rsvpText),
+    bodyParagraphs: paragraphsHtml,
+    contactName: escapeHtml(contactName),
+    contactEmail: escapeHtml(contactEmail),
+    subject: escapeHtml(subject),
+    eventsHtml,
+    themePageBg: escapeHtml(t.pageBg),
+    themeCardBg: escapeHtml(t.cardBg),
+    themeTextColor: escapeHtml(t.textColor),
+    themeAccentColor: escapeHtml(t.accentColor),
+    themeHeadingFont: escapeHtml(t.headingFont),
+    themeBodyFont: escapeHtml(t.bodyFont),
+    themeTitleSize: escapeHtml(String(t.titleSize)),
+    themeSubtitleSize: escapeHtml(String(t.subtitleSize)),
+    themeBodySize: escapeHtml(String(t.bodySize)),
+  };
+
+  return Object.entries(tokens).reduce(
+    (out, [key, val]) => out.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), () => val),
+    html
+  );
 }
 
 // ─── DEFAULT TEMPLATE ─────────────────────────────────────────────────────────
 const DEFAULT_TEMPLATE = {
   id: 'baking-experience',
   name: 'The Baking Experience',
+  theme: { ...THEME_DEFAULTS },
   html: `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -257,7 +299,7 @@ const DEFAULT_TEMPLATE = {
 <style>
   body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
   table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-  body { margin: 0; padding: 0; background-color: #f7f3ee; font-family: Calibri, 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+  body { margin: 0; padding: 0; background-color: {{themePageBg}}; font-family: {{themeBodyFont}}; }
   @media only screen and (max-width: 600px) {
     .email-container { width: 100% !important; }
     .outer-td { padding: 16px 8px !important; }
@@ -268,29 +310,29 @@ const DEFAULT_TEMPLATE = {
   }
 </style>
 </head>
-<body style="margin:0;padding:0;background-color:#f7f3ee;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f7f3ee;">
+<body style="margin:0;padding:0;background-color:{{themePageBg}};">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{{themePageBg}};">
   <tr>
     <td class="outer-td" align="center" style="padding:32px 16px;">
-      <table class="email-container" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;margin:0 auto;background-color:#fffdf9;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07);">
+      <table class="email-container" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;margin:0 auto;background-color:{{themeCardBg}};border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.07);">
         <!-- HEADER -->
         <tr>
-          <td class="header-pad" align="center" style="background-color:#fffdf9;padding:28px 40px 32px;border-bottom:1px solid #f0e8de;">
+          <td class="header-pad" align="center" style="background-color:{{themeCardBg}};padding:28px 40px 32px;border-bottom:1px solid #f0e8de;">
             <img src="https://ik.imagekit.io/chompchomp/Baking%20Experience%20logo" alt="The Baking Experience" width="480" style="display:block;margin:0 auto 8px;width:480px;max-width:100%;height:auto;">
-            <p style="margin:0 0 14px;font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:400;color:#a08878;letter-spacing:0.06em;">{{subtitle}}</p>
-            <h1 class="main-title" style="margin:0 0 16px;font-family:Cambria,Georgia,'Times New Roman',serif;font-size:40px;font-weight:normal;color:#3d2e24;line-height:1.15;letter-spacing:-0.01em;">{{title}}</h1>
+            <p style="margin:0 0 14px;font-family:{{themeBodyFont}};font-size:{{themeSubtitleSize}}px;font-weight:400;color:#a08878;letter-spacing:0.06em;">{{subtitle}}</p>
+            <h1 class="main-title" style="margin:0 0 16px;font-family:{{themeHeadingFont}};font-size:{{themeTitleSize}}px;font-weight:normal;color:{{themeTextColor}};line-height:1.15;letter-spacing:-0.01em;">{{title}}</h1>
           </td>
         </tr>
         <!-- EVENT DETAILS -->
         <tr>
-          <td align="center" style="padding:28px 40px 20px;background-color:#fffdf9;">
-            <p style="margin:0;font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;color:#4a3a30;line-height:1.9;">{{date}} &nbsp;&bull;&nbsp; {{time}}<br>{{location}}</p>
+          <td align="center" style="padding:28px 40px 20px;background-color:{{themeCardBg}};">
+            <p style="margin:0;font-family:{{themeBodyFont}};font-size:{{themeBodySize}}px;color:{{themeTextColor}};line-height:1.9;">{{date}} &nbsp;&bull;&nbsp; {{time}}<br>{{location}}</p>
           </td>
         </tr>
         <!-- RSVP LINK -->
         <tr>
-          <td align="center" style="padding:8px 40px 32px;background-color:#fffdf9;">
-            <a href="{{rsvpLink}}" style="font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:#e8956d;text-decoration:none;letter-spacing:0.04em;">{{rsvpText}}</a>
+          <td align="center" style="padding:8px 40px 32px;background-color:{{themeCardBg}};">
+            <a href="{{rsvpLink}}" style="font-family:{{themeBodyFont}};font-size:16px;font-weight:700;color:{{themeAccentColor}};text-decoration:none;letter-spacing:0.04em;">{{rsvpText}}</a>
           </td>
         </tr>
         <!-- DIVIDER -->
@@ -303,9 +345,9 @@ const DEFAULT_TEMPLATE = {
         </tr>
         <!-- BODY COPY -->
         <tr>
-          <td class="body-pad" style="padding:32px 44px 24px;font-family:Calibri,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.75;color:#4a3a30;">
+          <td class="body-pad" style="padding:32px 44px 24px;font-family:{{themeBodyFont}};font-size:{{themeBodySize}}px;line-height:1.75;color:{{themeTextColor}};">
             {{bodyParagraphs}}
-            <p style="margin:0;font-size:13px;color:#a08878;">Questions? Reach out to <a href="mailto:{{contactEmail}}" style="color:#e8956d;text-decoration:none;font-weight:600;">{{contactName}}</a>.</p>
+            <p style="margin:0;font-size:13px;color:#a08878;">Questions? Reach out to <a href="mailto:{{contactEmail}}" style="color:{{themeAccentColor}};text-decoration:none;font-weight:600;">{{contactName}}</a>.</p>
           </td>
         </tr>
         <!-- FOOTER -->
@@ -336,20 +378,20 @@ const DEFAULT_TEMPLATE = {
 // ─── TEMPLATE ROUTES ──────────────────────────────────────────────────────────
 app.get('/api/templates', (req, res) => {
   const templates = readTemplates();
-  res.json(templates.map(({ id, name, html }) => ({ id, name, html })));
+  res.json(templates.map(({ id, name, html, theme }) => ({ id, name, html, theme: mergeTheme(theme) })));
 });
 
 app.get('/api/templates/:id', (req, res) => {
   const t = readTemplates().find(t => t.id === req.params.id);
   if (!t) return res.status(404).json({ error: 'Not found' });
-  res.json(t);
+  res.json({ ...t, theme: mergeTheme(t.theme) });
 });
 
 app.post('/api/templates', (req, res) => {
-  const { name, html } = req.body;
+  const { name, html, theme } = req.body;
   if (!name || !html) return res.status(400).json({ error: 'name and html required' });
   const templates = readTemplates();
-  const t = { id: randomUUID(), name, html };
+  const t = { id: randomUUID(), name, html, theme: mergeTheme(theme) };
   templates.push(t);
   writeTemplates(templates);
   res.json(t);
@@ -361,6 +403,7 @@ app.put('/api/templates/:id', (req, res) => {
   if (i === -1) return res.status(404).json({ error: 'Not found' });
   if (req.body.name !== undefined) templates[i].name = req.body.name;
   if (req.body.html !== undefined) templates[i].html = req.body.html;
+  if (req.body.theme !== undefined) templates[i].theme = mergeTheme(req.body.theme);
   writeTemplates(templates);
   res.json(templates[i]);
 });
@@ -429,17 +472,20 @@ app.delete('/api/drafts/:id', (req, res) => {
 // ─── PREVIEW ──────────────────────────────────────────────────────────────────
 // Accepts either { templateId, emailData } or { templateHtml, emailData }
 app.post('/api/preview', (req, res) => {
-  const { templateId, templateHtml, emailData } = req.body;
-  let html;
+  const { templateId, templateHtml, emailData, theme } = req.body;
+  let html, baseTheme;
   if (templateHtml) {
-    html = renderTemplate(templateHtml, emailData || {});
+    html = templateHtml;
+    baseTheme = THEME_DEFAULTS;
   } else {
     const templates = readTemplates();
     const t = templates.find(t => t.id === templateId) || templates[0];
     if (!t) return res.status(404).send('No template found');
-    html = renderTemplate(t.html, emailData || {});
+    html = t.html;
+    baseTheme = t.theme;
   }
-  res.send(html);
+  const effectiveTheme = mergeTheme({ ...mergeTheme(baseTheme), ...(theme || {}) });
+  res.send(renderTemplate(html, emailData || {}, effectiveTheme));
 });
 
 // ─── CSV PARSING ──────────────────────────────────────────────────────────────
@@ -461,7 +507,7 @@ app.post('/api/send', async (req, res) => {
   if (!t) return res.status(404).json({ error: 'Template not found' });
 
   const resend = new Resend(apiKey);
-  const html = renderTemplate(t.html, emailData || {});
+  const html = renderTemplate(t.html, emailData || {}, t.theme);
   const subject = (emailData && (emailData.subject || emailData.title)) || '(no subject)';
   const fromAddress = (emailData && emailData.fromAddress) || 'onboarding@resend.dev';
   const fromName = emailData && emailData.fromName;
