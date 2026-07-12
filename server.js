@@ -124,6 +124,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
 const TEMPLATES_FILE = path.join(DATA_DIR, 'templates.json');
+const DRAFTS_FILE = path.join(DATA_DIR, 'drafts.json');
 
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -131,6 +132,7 @@ function ensureDataDir() {
   if (!fs.existsSync(TEMPLATES_FILE)) {
     fs.writeFileSync(TEMPLATES_FILE, JSON.stringify([DEFAULT_TEMPLATE], null, 2));
   }
+  if (!fs.existsSync(DRAFTS_FILE)) fs.writeFileSync(DRAFTS_FILE, '[]');
 }
 
 function readHistory() {
@@ -149,6 +151,15 @@ function readTemplates() {
 
 function writeTemplates(t) {
   fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(t, null, 2));
+}
+
+function readDrafts() {
+  ensureDataDir();
+  try { return JSON.parse(fs.readFileSync(DRAFTS_FILE, 'utf8')); } catch { return []; }
+}
+
+function writeDrafts(d) {
+  fs.writeFileSync(DRAFTS_FILE, JSON.stringify(d, null, 2));
 }
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -404,6 +415,57 @@ app.delete('/api/templates/:id', (req, res) => {
   templates = templates.filter(t => t.id !== req.params.id);
   if (templates.length === before) return res.status(404).json({ error: 'Not found' });
   writeTemplates(templates);
+  res.json({ ok: true });
+});
+
+// ─── DRAFTS ───────────────────────────────────────────────────────────────────
+app.get('/api/drafts', (req, res) => {
+  res.json(readDrafts());
+});
+
+app.get('/api/drafts/:id', (req, res) => {
+  const d = readDrafts().find(d => d.id === req.params.id);
+  if (!d) return res.status(404).json({ error: 'Not found' });
+  res.json(d);
+});
+
+app.post('/api/drafts', (req, res) => {
+  const { name, templateId, emailData, recipients } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const drafts = readDrafts();
+  const d = {
+    id: randomUUID(),
+    name,
+    savedAt: new Date().toISOString(),
+    templateId: templateId || null,
+    emailData: emailData || {},
+    recipients: Array.isArray(recipients) ? recipients : [],
+  };
+  drafts.unshift(d);
+  writeDrafts(drafts);
+  res.json(d);
+});
+
+app.put('/api/drafts/:id', (req, res) => {
+  const drafts = readDrafts();
+  const i = drafts.findIndex(d => d.id === req.params.id);
+  if (i === -1) return res.status(404).json({ error: 'Not found' });
+  const { name, templateId, emailData, recipients } = req.body;
+  if (name !== undefined) drafts[i].name = name;
+  if (templateId !== undefined) drafts[i].templateId = templateId;
+  if (emailData !== undefined) drafts[i].emailData = emailData;
+  if (recipients !== undefined) drafts[i].recipients = recipients;
+  drafts[i].savedAt = new Date().toISOString();
+  writeDrafts(drafts);
+  res.json(drafts[i]);
+});
+
+app.delete('/api/drafts/:id', (req, res) => {
+  let drafts = readDrafts();
+  const before = drafts.length;
+  drafts = drafts.filter(d => d.id !== req.params.id);
+  if (drafts.length === before) return res.status(404).json({ error: 'Not found' });
+  writeDrafts(drafts);
   res.json({ ok: true });
 });
 
